@@ -15,7 +15,7 @@
   "properties": {
     "key": {
       "type": "string",
-      "pattern": "^[ws]:Q[1-9][0-9]{0,19}:(season|episode):Q[1-9][0-9]{0,19}$"
+      "pattern": "^[ws]:Q[1-9][0-9]{0,19}:(?:(?:season|episode):Q[1-9][0-9]{0,19}|episodeOrder:(?:n[0-9]{10}|u):Q[1-9][0-9]{0,19})$"
     },
     "kind": {
       "const": "relationship"
@@ -33,7 +33,8 @@
     "role": {
       "enum": [
         "season",
-        "episode"
+        "episode",
+        "episodeOrder"
       ]
     },
     "qid": {
@@ -53,7 +54,33 @@
       "then": {
         "properties": {
           "role": {
-            "const": "episode"
+            "enum": [
+              "episode",
+              "episodeOrder"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "role": {
+            "const": "episodeOrder"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "key": {
+            "pattern": "^[ws]:Q[1-9][0-9]{0,19}:episodeOrder:(?:n[0-9]{10}|u):Q[1-9][0-9]{0,19}$"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "key": {
+            "pattern": "^[ws]:Q[1-9][0-9]{0,19}:(?:season|episode):Q[1-9][0-9]{0,19}$"
           }
         }
       }

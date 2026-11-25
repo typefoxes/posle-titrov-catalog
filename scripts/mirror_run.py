@@ -7,6 +7,7 @@ import os
 import shutil
 import sys
 import time
+import uuid
 from pathlib import Path
 
 import requests
@@ -14,7 +15,7 @@ import requests
 from scripts.mirror_budget import MAXIMUM_SOURCE_BYTES, MAXIMUM_SOURCE_REQUESTS, MirrorReservation
 from scripts.mirror_github import MirrorGitHub
 from scripts.wikimedia.common import (DATABASE_ADDRESS, PUBLIC_ROOT, CatalogError, atomic_json,
-                                     fingerprint, require)
+                                     canonical_bytes, fingerprint, read_json, require, LOCAL_DISK_RESERVE_BYTES)
 from scripts.wikimedia.disk_blocks import DiskBlockStore
 from scripts.wikimedia.public_delivery import AnonymousPublicAuth, ReleaseRangeTransport
 from scripts.wikimedia.public_pack import PublicPackReader, export_public_pack, valid_digest
@@ -109,15 +110,71 @@ def restore_public_seed(transport, manifest, cache):
     return PublicPackReader(manifest, read_range)
 
 
+class PublicPendingCache:
+    """Хранит только проверяемые public envelopes; дополнительная SQLite не нужна для возобновления GET."""
+
+    def __init__(self, directory):
+        """Открывает отдельный disposable каталог без токенов, private checkpoint и индекса доверия."""
+        self.directory = Path(directory)
+        self.directory.mkdir(parents=True, exist_ok=True)
+
+    def path(self, digest):
+        """Ограничивает любой доступ полным SHA и собственным публичным cache-каталогом."""
+        require(valid_digest(digest), 'mirror_pending_invalid_digest')
+        return self.directory / 'blocks' / digest[:2] / (digest + '.json')
+
+    def get(self, digest):
+        """Проверяет размер и SHA каждого hit; повреждённый файл или symlink переносит в карантин до GET."""
+        path = self.path(digest)
+        if not path.exists() and not path.is_symlink():
+            return None
+        try:
+            require(not path.is_symlink() and path.stat().st_size <= 257 * 1024 + 1, 'mirror_pending_invalid_file')
+            value = read_json(path)
+            require(isinstance(value, dict) and fingerprint(value) == digest, 'mirror_pending_hash_mismatch')
+            return value
+        except (CatalogError, FileNotFoundError, ValueError):
+            quarantine = path.with_name(path.name + '.corrupt-' + uuid.uuid4().hex)
+            os.replace(path, quarantine)
+            return None
+
+    def put(self, digest, value):
+        """Записывает атомарно только полный проверенный public ответ в пределах прежнего дискового резерва."""
+        require(isinstance(value, dict) and fingerprint(value) == digest
+                and len(canonical_bytes(value)) <= 257 * 1024, 'mirror_pending_invalid_value')
+        require(shutil.disk_usage(self.directory).free >= LOCAL_DISK_RESERVE_BYTES + 16 * 1024**2,
+                'local_disk_reserve_reached')
+        existing = self.get(digest)
+        if existing is not None:
+            require(existing == value, 'mirror_pending_hash_collision')
+            return
+        atomic_json(self.path(digest), value)
+
+    def clear(self):
+        """Удаляет только генерируемый delta cache после подтверждённого пакета; ошибка очистки не отменяет публикацию."""
+        try:
+            shutil.rmtree(self.directory)
+            return True
+        except OSError:
+            return False
+
+
 class MirrorBlockStore(DiskBlockStore):
     """Новый inventory включает только достигнутые public DAG objects, без orphan blocks прежнего seed."""
 
-    def __init__(self, directory, seed, source):
+    def __init__(self, directory, seed, source, pending_directory=None):
         """Получает заменяемые read-only зависимости; закрытый state не доступен ни одному пути."""
         super().__init__(directory)
         self.seed = seed
         self.source = source
         self.new_source_blocks = 0
+        self.reused_pending_blocks = 0
+        self.pending_directory = Path(pending_directory) if pending_directory is not None else Path(directory) / 'pending'
+        self.pending = PublicPendingCache(self.pending_directory)
+
+    def clear_completed_pending(self):
+        """Удаляет только генерируемый delta cache после readback опубликованного пакета и установки его verified seed."""
+        return self.pending.clear()
 
     def get(self, digest):
         """Берёт старый SHA из verified pack; только новый отсутствующий адрес читает из публичного Firebase."""
@@ -127,8 +184,13 @@ class MirrorBlockStore(DiskBlockStore):
         if digest in self.seed:
             value = self.seed.get(digest)
         else:
-            value = self.source.read('blocks', digest)
-            self.new_source_blocks += 1
+            value = self.pending.get(digest)
+            if value is None:
+                value = self.source.read('blocks', digest)
+                self.pending.put(digest, value)
+                self.new_source_blocks += 1
+            else:
+                self.reused_pending_blocks += 1
         self.put(digest, value)
         return value
 
@@ -172,7 +234,7 @@ def mirror_once(github, directory, cache, force_rebuild=False):
             reader.get(catalog['collections']['records']['root'])
             return {'complete': True, 'changed': False, 'catalogSHA256': fingerprint(catalog), 'sourceRequests': source.requests}
         seed = restore_public_seed(transport, previous_manifest, cache)
-        objects = MirrorBlockStore(directory / 'objects', seed, source)
+        objects = MirrorBlockStore(directory / 'objects', seed, source, cache / 'pending')
         try:
             manifest = export_public_pack(catalog, objects, directory / 'package')
             # Это полный новый public DAG, а не частичный source checkpoint или новая дата старого каталога.
@@ -194,9 +256,11 @@ def mirror_once(github, directory, cache, force_rebuild=False):
                 probe.close()
             # Кэш может пропасть: он ускоритель, authoritative seed остаётся в проверенном публичном Release.
             install_public_cache(directory / 'package', manifest, cache)
+            cleared_pending = objects.clear_completed_pending()
             return {'complete': True, 'changed': fingerprint(manifest) != fingerprint(previous_manifest),
                 'completePackageRebuiltAndServerDigestsVerified': True, **result, 'catalogSHA256': fingerprint(catalog),
                 'newFirebaseBlocks': objects.new_source_blocks, 'sourceRequests': source.requests,
+                'reusedPendingPublicBlocks': objects.reused_pending_blocks, 'pendingCacheCleared': cleared_pending,
                 'sourceReceivedPayloadBytes': source.received, 'clientFallbackToFirebaseEnabled': False}
         finally:
             objects.close()

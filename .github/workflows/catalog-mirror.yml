@@ -83,8 +83,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MIRROR_REBUILD: ${{ inputs.rebuild || false }}
         run: python -m scripts.mirror_run
-      - name: Save only public immutable assets
-        if: ${{ success() }}
+      - name: Save verified public seed and resumable public blocks
+        if: ${{ !cancelled() && steps.public-cache.outcome == 'success' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: artifacts/mirror/cache

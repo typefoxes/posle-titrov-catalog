@@ -2,17 +2,18 @@
 """Проверки главных границ зеркала: durable quota, anonymous reads, cache loss и server asset digests."""
 
 import copy
+import os
 import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from scripts.mirror_budget import (MAXIMUM_SOURCE_BYTES, MAXIMUM_SOURCE_REQUESTS, MONTHLY_MIRROR_STOP_BYTES,
                                   MirrorReservation, conservative_bytes)
 from scripts.mirror_github import MirrorGitHub
 from scripts.mirror_run import (MirrorBlockStore, PublicFirebaseSource, install_public_cache,
-                                restore_public_seed, verified_asset_file)
+                                mirror_once, restore_public_seed, verified_asset_file)
 from scripts.wikimedia.bundle import prepare_bundle
 from scripts.wikimedia.common import CatalogError, canonical_bytes, fingerprint
 from scripts.wikimedia.contract import normalize_entity
@@ -48,9 +49,9 @@ def configure_ledger():
     return github, state
 
 
-def public_fixture(root):
+def public_fixture(root, revision=100):
     """Собирает маленький настоящий public codec пакет; данные synthetic, source runtime не заявляется."""
-    entity = {'id': 'Q123', 'type': 'item', 'lastrevid': 100, 'labels': {'ru': {'language': 'ru', 'value': 'Пример'}},
+    entity = {'id': 'Q123', 'type': 'item', 'lastrevid': revision, 'labels': {'ru': {'language': 'ru', 'value': 'Пример'}},
               'descriptions': {}, 'aliases': {}, 'sitelinks': {}, 'claims': {}}
     records = {'Q123': normalize_entity(entity, 'film', '2026-11-25T00:00:00+00:00')}
     assets = {'inputSHA256': fingerprint(records), 'completeForRequestedSample': True,
@@ -248,6 +249,168 @@ class MirrorCacheTests(unittest.TestCase):
         self.assertTrue(verified_asset_file(cache / 'catalog.pack', self.manifest['pack']))
         reader = PublicPackReader(self.manifest, self.read_range)
         self.assertEqual(reader.get(next(iter(self.blocks))), next(iter(self.blocks.values())))
+
+    def test_interrupted_delta_resumes_without_fetching_confirmed_prefix_again(self):
+        """После bounded остановки следующий job читает уже полученный SHA с диска и продолжает оставшиеся адреса."""
+        first, second = list(self.blocks.items())[:2]
+        pending = self.root / 'cache/pending'
+        source = Mock()
+        source.read.side_effect = [first[1], CatalogError('mirror_source_budget_exhausted')]
+        store = MirrorBlockStore(self.root / 'attempt-first', {}, source, pending)
+        try:
+            self.assertEqual(store.get(first[0]), first[1])
+            with self.assertRaisesRegex(CatalogError, 'source_budget_exhausted'):
+                store.get(second[0])
+        finally:
+            store.close()
+        resumed_source = Mock()
+        resumed_source.read.return_value = second[1]
+        resumed = MirrorBlockStore(self.root / 'attempt-second', {}, resumed_source, pending)
+        try:
+            self.assertEqual(resumed.get(first[0]), first[1])
+            self.assertEqual(resumed.get(second[0]), second[1])
+            resumed_source.read.assert_called_once_with('blocks', second[0])
+            self.assertEqual(resumed.reused_pending_blocks, 1)
+            self.assertEqual(resumed.new_source_blocks, 1)
+        finally:
+            resumed.close()
+
+    def test_corrupted_pending_body_is_quarantined_before_addressed_repair(self):
+        """Имя SHA и строка inventory не позволяют принять повреждённый cache как опубликованное содержимое."""
+        digest, value = next(iter(self.blocks.items()))
+        pending = self.root / 'cache/pending'
+        damaged = DiskBlockStore(pending)
+        damaged.put(digest, value)
+        damaged.path(digest).write_bytes(b'{"corrupted":true}')
+        damaged.close()
+        source = Mock()
+        source.read.return_value = value
+        store = MirrorBlockStore(self.root / 'repaired', {}, source, pending)
+        try:
+            self.assertEqual(store.get(digest), value)
+            source.read.assert_called_once_with('blocks', digest)
+            self.assertEqual(store.reused_pending_blocks, 0)
+            self.assertEqual(store.pending.get(digest), value)
+            self.assertEqual(len(list(pending.rglob('*.corrupt-*'))), 1)
+        finally:
+            store.close()
+
+    def test_unvisited_pending_blocks_do_not_enter_new_package_inventory(self):
+        """Смена закреплённого source использует только достигнутые SHA; чужой partial DAG не добавляется в export."""
+        first, second = list(self.blocks.items())[:2]
+        pending = DiskBlockStore(self.root / 'cache/pending')
+        pending.put(first[0], first[1])
+        pending.put(second[0], second[1])
+        pending.close()
+        (self.root / 'cache/pending/inventory.sqlite').write_bytes(b'corrupted unused index')
+        source = Mock()
+        store = MirrorBlockStore(self.root / 'selected-dag', {}, source, self.root / 'cache/pending')
+        try:
+            self.assertEqual(store.get(second[0]), second[1])
+            inventory = {row[0] for row in store.connection.execute('SELECT digest FROM blocks')}
+            self.assertEqual(inventory, {second[0]})
+            source.read.assert_not_called()
+            self.assertTrue(store.clear_completed_pending())
+            self.assertFalse((self.root / 'cache/pending').exists())
+        finally:
+            store.close()
+
+    def test_pending_symlink_never_reads_or_changes_its_external_target(self):
+        """Disposable cache не позволяет symlink читать внешний файл; карантин переносит лишь саму ссылку."""
+        digest, value = next(iter(self.blocks.items()))
+        source = Mock()
+        source.read.return_value = value
+        store = MirrorBlockStore(self.root / 'safe', {}, source, self.root / 'cache/pending')
+        external = self.root / 'outside-cache.json'
+        external.write_bytes(b'{"external":"untouched synthetic fixture"}')
+        target = store.pending.path(digest)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.symlink_to(external)
+        try:
+            self.assertEqual(store.get(digest), value)
+            self.assertEqual(external.read_bytes(), b'{"external":"untouched synthetic fixture"}')
+            self.assertFalse(target.is_symlink())
+            source.read.assert_called_once_with('blocks', digest)
+        finally:
+            store.close()
+
+    def test_complete_mirror_resumes_bounded_runs_and_publishes_only_after_full_dag_and_source_check(self):
+        """Настоящий export проходит несколько jobs с budget4GET; partial не публикуется, а новый пакет читается целиком."""
+        target, blocks = public_fixture(self.root / 'target', revision=101)
+        release = {'schemaVersion': 1, 'catalog': target['catalog'], 'sourceSnapshot': target['catalog']['sourceSnapshot'],
+                   'checkpoint': target['catalog']['sourceSnapshot'], 'readbackVerified': True}
+        pointer = {'schemaVersion': 1, 'release': fingerprint(release), 'sourceSnapshot': release['sourceSnapshot'],
+                   'generation': 2, 'publisher': {'owner': 'a' * 32, 'fence': 1}, 'activatedAt': '2026-11-25T00:00:00+00:00'}
+        github, ledger = configure_ledger()
+        previous_tag = 'wiki-' + fingerprint(self.manifest)
+        github.latest_release.return_value = {'tag_name': previous_tag}
+        state = {'published': None, 'sourceBlockReads': [], 'failedJobs': 0}
+
+        for attempt in range(6):
+            source, transport = Mock(), Mock()
+            source.requests, source.received = 0, 0
+            transport.tag = previous_tag
+            transport.read_manifest.return_value = self.manifest
+
+            def read(collection=None, digest=None):
+                """Ограничивает каждый run до4GET с точным учётом, включая финальную проверку source."""
+                if source.requests == 4:
+                    raise CatalogError('mirror_source_budget_exhausted')
+                source.requests += 1
+                if collection is None:
+                    value = pointer
+                elif collection == 'releases':
+                    value = release
+                else:
+                    state['sourceBlockReads'].append(digest)
+                    value = blocks[digest]
+                source.received += len(canonical_bytes(value))
+                return value
+
+            def read_range(name, offset, length, total):
+                """До публикации читает прежний seed, затем независимо проверяет собранные новые assets."""
+                directory = state['published'] or self.root / 'package'
+                path = directory / name
+                self.assertEqual(path.stat().st_size, total)
+                with path.open('rb') as stream:
+                    stream.seek(offset)
+                    return stream.read(length)
+
+            def publish(directory, _digest, previous, _commit, confirm_source):
+                """Имитирует последнюю границу GitHub API; не открывает пакет до успешной проверки pointer."""
+                self.assertEqual(previous, previous_tag)
+                confirm_source()
+                state['published'] = directory
+                transport.read_manifest.return_value = target
+                return {'published': True}
+
+            source.read.side_effect = read
+            transport.read_range.side_effect = read_range
+            github.publish_package.side_effect = publish
+            directory = self.root / ('bounded-run-' + str(attempt))
+            directory.mkdir()
+            with patch('scripts.mirror_run.PublicFirebaseSource', return_value=source), \
+                    patch('scripts.mirror_run.ReleaseRangeTransport', return_value=transport), \
+                    patch.dict(os.environ, {'GITHUB_SHA': 'b' * 40}):
+                try:
+                    result = mirror_once(github, directory, self.root / 'resumable-cache')
+                except CatalogError as error:
+                    self.assertEqual(str(error), 'mirror_source_budget_exhausted')
+                    self.assertIsNone(state['published'])
+                    state['failedJobs'] += 1
+                else:
+                    self.assertTrue(result['complete'])
+                    self.assertTrue(result['pendingCacheCleared'])
+                    break
+            self.assertLessEqual(source.requests, 4)
+            self.assertFalse(ledger['ledger']['reservations'])
+        self.assertIsNotNone(state['published'])
+        self.assertGreater(state['failedJobs'], 0)
+        self.assertEqual(len(state['sourceBlockReads']), len(set(state['sourceBlockReads'])))
+        reader = PublicPackReader(target, read_range)
+        for digest, envelope in blocks.items():
+            self.assertEqual(reader.get(digest), envelope)
+        self.assertFalse(ledger['ledger']['reservations'])
 
 
 class MirrorGitHubBoundaryTests(unittest.TestCase):

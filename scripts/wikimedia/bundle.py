@@ -163,18 +163,34 @@ def index_rows(records):
                     for key, values in sorted(external.items())}
 
 
-def recommendation_rows(records):
-    """Создаёт воспроизводимые пулы до 500 QID по типу/жанру, не обучаясь на данных пользователя."""
+def recommendation_keys(record):
+    """Не предлагает карточки без настоящего названия; mixed входит во все подтверждённые категории."""
+    titles = record.get("titles", {})
+    original = [value.get("text") for value in known_values(record, "titleStatements") if isinstance(value, dict)]
+    if not any(isinstance(value, str) and value.strip() for value in [titles.get("ru"), titles.get("en"), *original]):
+        return set()
+    kinds = set(record.get("classifications", {})) if record["kind"] == "mixed" else {record["kind"]}
+    keys = {"kind:" + kind for kind in kinds}
+    keys.update("genre:" + genre["id"] + ":" + kind for kind in kinds
+                for genre in known_values(record, "genres") if isinstance(genre, dict) and valid_qid(genre.get("id")))
+    return keys
+
+
+def recommendation_priority(record, key, has_synopsis=False):
+    """Предпочитает известное русское название и сюжет; оставшийся порядок воспроизводим и не объявляется популярностью."""
+    titles = record.get("titles", {})
+    language = 0 if titles.get("ru", "").strip() else (1 if titles.get("en", "").strip() else 2)
+    return str(language * 2 + int(not has_synopsis)) + fingerprint({"pool": key, "qid": record["qid"]})
+
+
+def recommendation_rows(records, synopsis_qids=()):
+    """Создаёт воспроизводимые пулы до500 названных произведений без обучения на личных данных."""
     candidates = defaultdict(set)
     for qid, record in records.items():
-        if record["kind"] == "mixed":
-            continue
-        candidates["kind:" + record["kind"]].add(qid)
-        for genre in known_values(record, "genres"):
-            if isinstance(genre, dict) and valid_qid(genre.get("id")):
-                candidates["genre:" + genre["id"] + ":" + record["kind"]].add(qid)
+        for key in recommendation_keys(record):
+            candidates[key].add(qid)
     return {key: {"kind": "pool", "key": key, "values": {qid: True for qid in sorted(
-            sorted(identifiers, key=lambda qid: fingerprint({"pool": key, "qid": qid}))[:500])}}
+            sorted(identifiers, key=lambda qid: recommendation_priority(records[qid], key, qid in synopsis_qids))[:500])}}
             for key, identifiers in sorted(candidates.items())}
 
 
@@ -204,7 +220,7 @@ def prepare_bundle(records, assets):
                 locations[qid][name] = leaf["block"]
         descriptors[name] = descriptor
     search, external = index_rows(records)
-    indices = {"search": search, "external": external, "pools": recommendation_rows(records),
+    indices = {"search": search, "external": external, "pools": recommendation_rows(records, assets["collections"]["synopses"]),
                "relationships": relationship_index(prepared["related"]),
                "routes": {qid: {"key": qid, "kind": "route", "values": values}
                           for qid, values in sorted(locations.items())}}
