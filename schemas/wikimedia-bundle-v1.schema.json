@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://posle-titrov.local/schemas/wikimedia-bundle-v1.schema.json",
+  "$comment": "Created by d.kotina on 24.11.2026; Local P0 package, not a committed public release manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest",
+    "manifestSHA256",
+    "blocks",
+    "inventory",
+    "totalBlockBytes",
+    "canonicalFirebaseSubtreeBytes"
+  ],
+  "properties": {
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "encoding",
+        "collections",
+        "inputSHA256",
+        "fullScopeVerified",
+        "publicationAllowed",
+        "media"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "encoding": {
+          "const": "zlib-base64"
+        },
+        "collections": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "records",
+            "synopses",
+            "related",
+            "references",
+            "search",
+            "external",
+            "routes",
+            "pools",
+            "relationships"
+          ],
+          "properties": {
+            "records": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "synopses": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "related": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "references": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "search": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "external": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "routes": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "pools": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "relationships": {
+              "$ref": "#/$defs/descriptor"
+            }
+          }
+        },
+        "inputSHA256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "fullScopeVerified": {
+          "const": false
+        },
+        "publicationAllowed": {
+          "const": false
+        },
+        "media": {
+          "const": "no_verified_posters"
+        }
+      }
+    },
+    "manifestSHA256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "blocks": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      "additionalProperties": {
+        "$ref": "wikimedia-block-v1.schema.json"
+      }
+    },
+    "inventory": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "totalBlockBytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "canonicalFirebaseSubtreeBytes": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "$defs": {
+    "descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "depth"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "root": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "first": {
+          "type": "string",
+          "minLength": 1
+        },
+        "last": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "count": {
+                "const": 0
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "depth": {
+                "const": 0
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "root"
+                  ]
+                },
+                {
+                  "required": [
+                    "first"
+                  ]
+                },
+                {
+                  "required": [
+                    "last"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "root",
+              "first",
+              "last"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

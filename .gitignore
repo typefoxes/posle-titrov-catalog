@@ -1,0 +1,18 @@
+# Created by d.kotina on 25.11.2026
+Secrets/
+.env
+.env.*
+*.service-account*.json
+*firebase-adminsdk*.json
+*.p8
+*.p12
+*.sqlite
+*.sqlite-*
+*.pack
+*.index
+artifacts/
+.build/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store

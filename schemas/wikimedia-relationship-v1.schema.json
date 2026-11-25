@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://posle-titrov.local/schemas/wikimedia-relationship-v1.schema.json",
+  "$comment": "Created by d.kotina on 24.11.2026. Exact work/season range index; no progress remapping.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "key",
+    "kind",
+    "scope",
+    "owner",
+    "role",
+    "qid"
+  ],
+  "properties": {
+    "key": {
+      "type": "string",
+      "pattern": "^[ws]:Q[1-9][0-9]{0,19}:(season|episode):Q[1-9][0-9]{0,19}$"
+    },
+    "kind": {
+      "const": "relationship"
+    },
+    "scope": {
+      "enum": [
+        "work",
+        "season"
+      ]
+    },
+    "owner": {
+      "type": "string",
+      "pattern": "^Q[1-9][0-9]{0,19}$"
+    },
+    "role": {
+      "enum": [
+        "season",
+        "episode"
+      ]
+    },
+    "qid": {
+      "type": "string",
+      "pattern": "^Q[1-9][0-9]{0,19}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "scope": {
+            "const": "season"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "role": {
+            "const": "episode"
+          }
+        }
+      }
+    }
+  ]
+}

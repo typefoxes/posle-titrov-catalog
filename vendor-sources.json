@@ -1,0 +1,33 @@
+{
+  "createdBy": "d.kotina",
+  "createdAt": "2026-11-25",
+  "scope": "public_metadata_codec_validation_only_no_Firebase_admin_writer_or_credentials",
+  "sourceRevision": "validated_working_tree_2026-11-25",
+  "files": {
+    "scripts/wikimedia/assets.py": "db1cda7b0697ed5572cdfeaf7594fd9bad5b7f5fa9eb6cd9ec578c98e08f7989",
+    "scripts/wikimedia/blocks.py": "7b26b977298979c440cf4c19af0426c673b74b4d6aea81b814112c4f40b4b929",
+    "scripts/wikimedia/bundle.py": "6db53e9d7177387c8d381c954935034cd76bce1efc4b51f11296cbf5bb17c617",
+    "scripts/wikimedia/common.py": "e93b1550ade4d8b004501fda9f1da4ab098b36508d0bfc798d3a8d997d49c353",
+    "scripts/wikimedia/contract.py": "a8086af68022e3bdf8653fc06e35d921fe205454bec1c6ac31e8ef71ed309cea",
+    "scripts/wikimedia/discovery.py": "e0f6b6c1a8d8ebfb1dff36d7f8338aed60350dffba7921bd35937b0aac3cc72e",
+    "scripts/wikimedia/disk_blocks.py": "5dd97e7df23e99d04bf9aeca7ad6f1c53b7a6fdc4e33dcf787174b6632fd6721",
+    "scripts/wikimedia/enrichment.py": "09d6bcbd93799485006f3956101d10ea28e5e769b58a80d597f048190f6d7e36",
+    "scripts/wikimedia/entity_status.py": "330cd0e6b5a798fbe8003747faa0316f411482a9973a9c023452532f029bda0e",
+    "scripts/wikimedia/measure.py": "e3cb03dcc4f016507f9ca2f4712a008ec81c1d058cdecf31e93ede6f7df29b3e",
+    "scripts/wikimedia/public_delivery.py": "4445a68c64cd873107994e7bb1a3cfb4f6642d5a40a173f42af212434992a2ac",
+    "scripts/wikimedia/public_pack.py": "65211eb72ed7cdb68c074afa596524f4458d605d9ded33f83a0fb6ce2dd10357",
+    "scripts/wikimedia/related_links.py": "eb1ff5a304a57ac5ce1669f111507d6a7c368e44407124f61c1ae918dc062204",
+    "scripts/wikimedia/relationship_index.py": "583c86414e218c36f3a10d2ad654a32381edbb578bebd847973ffed0c1063b42",
+    "scripts/wikimedia/schema_validation.py": "a5fe7821d6c4f7d23997456a9704eff5275770434264df881446e73bad41706b",
+    "scripts/wikimedia/tree_reader.py": "bbf325ad5364a537f917e4361f1459cdfe7145538f9b7a74b93872d3ae5d44a3",
+    "schemas/wikimedia-asset-v1.schema.json": "1d6105e9cd05857af0a839da439db428f91ce7ee446d1d870f852b7f2e80befc",
+    "schemas/wikimedia-block-v1.schema.json": "20b0726c7fb302c483517e37cd0174d33560ffd17a9055f1277637da0e8b914e",
+    "schemas/wikimedia-bundle-v1.schema.json": "b2236e12b76d033783ad9ed191a12f6d3de9dc4f08f4351f2fa49e05df3c57ff",
+    "schemas/wikimedia-checkpoint-v1.schema.json": "9fc510869c1d994e5ba938721d9605383bb6c7cc1e841d5c7d5bfcf9b9e96595",
+    "schemas/wikimedia-index-row-v1.schema.json": "48f9fbc48d1d2ce0ebb32dfa2b233eb50f9e91570b75c5b74d23fcf31a644900",
+    "schemas/wikimedia-pointer-v1.schema.json": "e51c80cb9aff141e3f0b5a8a7d19c17fd37d1b99fe350246a82fc67ac3ec0cb4",
+    "schemas/wikimedia-record-v1.schema.json": "4e6b3379255c0feb58b4f0cf4cea54df0d1f9f6b493da293378297f4db93ae8d",
+    "schemas/wikimedia-relationship-v1.schema.json": "44707856d842d0175cd046a1f43d81d7d1493f14387cc13da9ba252c5a48d573",
+    "schemas/wikimedia-release-v1.schema.json": "9d2761a63b128b4c1b74f27362558617b0db60bde0813c4a1ea331907c7e7420"
+  }
+}

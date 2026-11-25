@@ -1,0 +1,338 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:posletitrov:wikimedia:record:1",
+  "title": "Wikimedia catalog record v1",
+  "$comment": "Created by d.kotina on 24.11.2026. Описание сущности не является сюжетом; P18 — только кандидат изображения.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "qid",
+    "kind",
+    "source"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "qid": {
+      "$ref": "#/$defs/qid"
+    },
+    "kind": {
+      "enum": [
+        "film",
+        "series",
+        "miniseries",
+        "mixed"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qid",
+        "revision",
+        "retrievedAt",
+        "url",
+        "license"
+      ],
+      "properties": {
+        "qid": {
+          "$ref": "#/$defs/qid"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "retrievedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "license": {
+          "const": "CC0-1.0"
+        }
+      }
+    },
+    "titles": {
+      "$ref": "#/$defs/localized"
+    },
+    "entityDescriptions": {
+      "$ref": "#/$defs/localized"
+    },
+    "aliases": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": [
+          "ru",
+          "en"
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "minProperties": 1,
+        "propertyNames": {
+          "pattern": "^a[0-9]{3,}$"
+        },
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "facts": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": [
+          "instanceOf",
+          "titleStatements",
+          "publicationDates",
+          "duration",
+          "genres",
+          "countries",
+          "languages",
+          "directors",
+          "screenwriters",
+          "cast",
+          "networks",
+          "startDates",
+          "endDates",
+          "series",
+          "partOf",
+          "parts",
+          "episodeCount",
+          "seasonCount",
+          "ordinal",
+          "season",
+          "imageCandidates",
+          "logoCandidates",
+          "imdb",
+          "kinopoisk",
+          "tmdbMovie",
+          "tmdbShow",
+          "tvdb"
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "minProperties": 1,
+        "propertyNames": {
+          "pattern": "^s[0-9]{3,}$"
+        },
+        "additionalProperties": {
+          "$ref": "#/$defs/statement"
+        }
+      }
+    },
+    "wikipediaCandidates": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": [
+          "ru",
+          "en"
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "url"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "classifications": {
+      "type": "object",
+      "minProperties": 2,
+      "additionalProperties": false,
+      "required": [
+        "film"
+      ],
+      "properties": {
+        "film": {
+          "const": true
+        },
+        "series": {
+          "const": true
+        },
+        "miniseries": {
+          "const": true
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "series"
+          ]
+        },
+        {
+          "required": [
+            "miniseries"
+          ]
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "qid": {
+      "type": "string",
+      "pattern": "^Q[1-9][0-9]{0,19}$"
+    },
+    "localized": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "ru": {
+          "type": "string",
+          "minLength": 1
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "value",
+            "somevalue",
+            "novalue"
+          ]
+        },
+        "type": {
+          "enum": [
+            "string",
+            "wikibase-entityid",
+            "time",
+            "quantity",
+            "monolingualtext"
+          ]
+        },
+        "value": {
+          "type": [
+            "string",
+            "object"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "value"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "type",
+              "value"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "type"
+                  ]
+                },
+                {
+                  "required": [
+                    "value"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "statement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank",
+        "value"
+      ],
+      "properties": {
+        "rank": {
+          "enum": [
+            "normal",
+            "preferred",
+            "deprecated"
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/value"
+        },
+        "qualifiers": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^P[1-9][0-9]*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": {
+              "pattern": "^v[0-9]{3,}$"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/value"
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "mixed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "classifications"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "classifications"
+          ]
+        }
+      }
+    }
+  ]
+}

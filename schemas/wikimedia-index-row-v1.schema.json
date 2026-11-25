@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://posle-titrov.local/schemas/wikimedia-index-row-v1.schema.json",
+  "$comment": "Created by d.kotina on 24.11.2026",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "kind",
+        "qid"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "search"
+        },
+        "qid": {
+          "type": "string",
+          "pattern": "^Q[1-9][0-9]{0,19}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "kind",
+        "values"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "external"
+        },
+        "values": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^Q[1-9][0-9]{0,19}$"
+          },
+          "additionalProperties": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "kind",
+        "values"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^Q[1-9][0-9]{0,19}$"
+        },
+        "kind": {
+          "const": "route"
+        },
+        "values": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "enum": [
+              "records",
+              "synopses",
+              "related",
+              "references"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "kind",
+        "values"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "pool"
+        },
+        "values": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^Q[1-9][0-9]{0,19}$"
+          },
+          "additionalProperties": {
+            "const": true
+          },
+          "maxProperties": 500
+        }
+      }
+    }
+  ]
+}

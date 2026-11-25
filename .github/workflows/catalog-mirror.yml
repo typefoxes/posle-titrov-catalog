@@ -1,0 +1,91 @@
+# Created by d.kotina on 25.11.2026
+name: Update public Wiki packages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'schemas/**'
+      - 'requirements*.txt'
+      - 'vendor-sources.json'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      rebuild:
+        description: Rebuild and verify the current package without claiming a source update
+        type: boolean
+        default: false
+  schedule:
+    - cron: '17 4 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-wiki-mirror
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11.15'
+      - name: Install pinned tools
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+      - name: Verify pinned public codec
+        run: python -m scripts.verify_vendor
+      - name: Verify mirror contracts
+        run: |
+          ruff check scripts/mirror_github.py scripts/mirror_budget.py scripts/mirror_run.py scripts/verify_vendor.py tests
+          python -m unittest discover -s tests -p 'test*.py'
+
+  mirror:
+    needs: verify
+    if: >-
+      github.repository == 'typefoxes/posle-titrov-catalog' && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11.15'
+      - name: Install pinned dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Restore disposable public package cache
+        id: public-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/mirror/cache
+          key: public-wiki-v3-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            public-wiki-v3-${{ runner.os }}-
+      - name: Publish only a fully verified public package
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MIRROR_REBUILD: ${{ inputs.rebuild || false }}
+        run: python -m scripts.mirror_run
+      - name: Save only public immutable assets
+        if: ${{ success() }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/mirror/cache
+          key: ${{ steps.public-cache.outputs.cache-primary-key }}

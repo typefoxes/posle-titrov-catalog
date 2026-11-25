@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Created by d.kotina on 24.11.2026. Closed/public publication contract; no personal data.",
+  "$id": "https://posle-titrov.local/schemas/wikimedia-pointer-v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "release",
+    "sourceSnapshot",
+    "generation",
+    "publisher",
+    "activatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "release": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "previous": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceSnapshot": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "publisher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "fence"
+      ],
+      "properties": {
+        "owner": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "fence": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "activatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "minLength": 1
+    }
+  }
+}

@@ -1,0 +1,577 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://posle-titrov.local/schemas/wikimedia-asset-v1.schema.json",
+  "$comment": "Created by d.kotina on 24.11.2026",
+  "title": "Wikimedia attributed synopsis, reference, season or episode",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "qid",
+        "kind",
+        "source"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "qid": {
+          "type": "string",
+          "pattern": "^Q[1-9][0-9]{0,19}$"
+        },
+        "kind": {
+          "const": "reference"
+        },
+        "source": {
+          "$ref": "#/$defs/structuredSource"
+        },
+        "titles": {
+          "$ref": "#/$defs/localized"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "qid",
+        "kind",
+        "source",
+        "works",
+        "relationQuerySHA256"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "qid": {
+          "type": "string",
+          "pattern": "^Q[1-9][0-9]{0,19}$"
+        },
+        "kind": {
+          "const": "season"
+        },
+        "source": {
+          "$ref": "#/$defs/structuredSource"
+        },
+        "titles": {
+          "$ref": "#/$defs/localized"
+        },
+        "facts": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "enum": [
+              "instanceOf",
+              "titleStatements",
+              "publicationDates",
+              "duration",
+              "genres",
+              "countries",
+              "languages",
+              "directors",
+              "screenwriters",
+              "cast",
+              "networks",
+              "startDates",
+              "endDates",
+              "series",
+              "partOf",
+              "parts",
+              "episodeCount",
+              "seasonCount",
+              "ordinal",
+              "season",
+              "imageCandidates",
+              "logoCandidates",
+              "imdb",
+              "kinopoisk",
+              "tmdbMovie",
+              "tmdbShow",
+              "tvdb"
+            ]
+          },
+          "additionalProperties": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": {
+              "pattern": "^s[0-9]{3,}$"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/statement"
+            }
+          }
+        },
+        "works": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^Q[1-9][0-9]{0,19}$"
+          },
+          "additionalProperties": {
+            "const": true
+          }
+        },
+        "relationQuerySHA256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "qid",
+        "kind",
+        "source",
+        "works",
+        "relationQuerySHA256"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "qid": {
+          "type": "string",
+          "pattern": "^Q[1-9][0-9]{0,19}$"
+        },
+        "kind": {
+          "const": "episode"
+        },
+        "source": {
+          "$ref": "#/$defs/structuredSource"
+        },
+        "titles": {
+          "$ref": "#/$defs/localized"
+        },
+        "facts": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "enum": [
+              "instanceOf",
+              "titleStatements",
+              "publicationDates",
+              "duration",
+              "genres",
+              "countries",
+              "languages",
+              "directors",
+              "screenwriters",
+              "cast",
+              "networks",
+              "startDates",
+              "endDates",
+              "series",
+              "partOf",
+              "parts",
+              "episodeCount",
+              "seasonCount",
+              "ordinal",
+              "season",
+              "imageCandidates",
+              "logoCandidates",
+              "imdb",
+              "kinopoisk",
+              "tmdbMovie",
+              "tmdbShow",
+              "tvdb"
+            ]
+          },
+          "additionalProperties": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": {
+              "pattern": "^s[0-9]{3,}$"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/statement"
+            }
+          }
+        },
+        "works": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^Q[1-9][0-9]{0,19}$"
+          },
+          "additionalProperties": {
+            "const": true
+          }
+        },
+        "relationQuerySHA256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "qid",
+        "kind",
+        "source",
+        "language",
+        "text",
+        "attribution"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "qid": {
+          "type": "string",
+          "pattern": "^Q[1-9][0-9]{0,19}$"
+        },
+        "kind": {
+          "const": "synopsis"
+        },
+        "source": {
+          "$ref": "#/$defs/textSource"
+        },
+        "language": {
+          "const": "ru"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 131072
+        },
+        "attribution": {
+          "$ref": "#/$defs/attribution"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "required": [
+                  "format"
+                ],
+                "properties": {
+                  "format": {
+                    "const": "wikitext"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "attribution": {
+                "properties": {
+                  "processingVersion": {
+                    "const": 2
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "attribution": {
+                "properties": {
+                  "processingVersion": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "qid": {
+      "type": "string",
+      "pattern": "^Q[1-9][0-9]{0,19}$"
+    },
+    "localized": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "ru": {
+          "type": "string",
+          "minLength": 1
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "value",
+            "somevalue",
+            "novalue"
+          ]
+        },
+        "type": {
+          "enum": [
+            "string",
+            "wikibase-entityid",
+            "time",
+            "quantity",
+            "monolingualtext"
+          ]
+        },
+        "value": {
+          "type": [
+            "string",
+            "object"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "value"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "type",
+              "value"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "type"
+                  ]
+                },
+                {
+                  "required": [
+                    "value"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "statement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank",
+        "value"
+      ],
+      "properties": {
+        "rank": {
+          "enum": [
+            "normal",
+            "preferred",
+            "deprecated"
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/value"
+        },
+        "qualifiers": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^P[1-9][0-9]*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": {
+              "pattern": "^v[0-9]{3,}$"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/value"
+            }
+          }
+        }
+      }
+    },
+    "structuredSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qid",
+        "revision",
+        "retrievedAt",
+        "url",
+        "license"
+      ],
+      "properties": {
+        "qid": {
+          "type": "string",
+          "pattern": "^Q[1-9][0-9]{0,19}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "retrievedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://www\\.wikidata\\.org/wiki/Special:EntityData/Q[1-9][0-9]*\\.json\\?revision=[1-9][0-9]*$"
+        },
+        "license": {
+          "const": "CC0-1.0"
+        }
+      }
+    },
+    "textSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "pageId",
+        "title",
+        "revision",
+        "url",
+        "articleURL",
+        "retrievedAt"
+      ],
+      "properties": {
+        "provider": {
+          "const": "ruwiki"
+        },
+        "pageId": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://ru\\.wikipedia\\.org/w/index\\.php\\?oldid=[1-9][0-9]*$"
+        },
+        "articleURL": {
+          "type": "string",
+          "pattern": "^https://ru\\.wikipedia\\.org/wiki/"
+        },
+        "retrievedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "renderedHTMLSHA256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "format": {
+          "const": "wikitext"
+        },
+        "wikitextSHA256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "renderedHTMLSHA256"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "wikitextSHA256"
+                ]
+              },
+              {
+                "required": [
+                  "format"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "wikitextSHA256",
+            "format"
+          ],
+          "not": {
+            "required": [
+              "renderedHTMLSHA256"
+            ]
+          }
+        }
+      ]
+    },
+    "attribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "credit",
+        "historyURL",
+        "license",
+        "licenseURL",
+        "modified",
+        "changes",
+        "processingVersion"
+      ],
+      "properties": {
+        "credit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "historyURL": {
+          "type": "string",
+          "pattern": "^https://ru\\.wikipedia\\.org/w/index\\.php\\?title=.+&action=history$"
+        },
+        "license": {
+          "const": "CC-BY-SA-4.0"
+        },
+        "licenseURL": {
+          "const": "https://creativecommons.org/licenses/by-sa/4.0/"
+        },
+        "modified": {
+          "const": true
+        },
+        "changes": {
+          "type": "string",
+          "minLength": 1
+        },
+        "processingVersion": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ]
+        }
+      }
+    }
+  }
+}

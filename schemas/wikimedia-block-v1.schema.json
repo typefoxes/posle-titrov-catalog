@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:posletitrov:wikimedia:block:1",
+  "$comment": "Created by d.kotina on 24.11.2026. SHA256 envelope проверяется перед ограниченной распаковкой.",
+  "title": "Wikimedia immutable compressed block v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "encoding", "recordCount", "decodedBytes", "decodedSHA256", "data"],
+  "properties": {
+    "schemaVersion": {"type": "integer", "const": 1},
+    "encoding": {"const": "zlib-base64"},
+    "recordCount": {"type": "integer", "minimum": 1, "maximum": 64},
+    "decodedBytes": {"type": "integer", "minimum": 1, "maximum": 1048576},
+    "decodedSHA256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "data": {"type": "string", "minLength": 4, "maxLength": 262144, "contentEncoding": "base64"}
+  }
+}

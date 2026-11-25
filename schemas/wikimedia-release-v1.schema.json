@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Created by d.kotina on 24.11.2026. Closed/public publication contract; no personal data.",
+  "$id": "https://posle-titrov.local/schemas/wikimedia-release-v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "catalog",
+    "sourceSnapshot",
+    "checkpoint",
+    "readbackVerified"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "encoding",
+        "collections",
+        "sourceSnapshot",
+        "fullScopeVerified",
+        "media",
+        "sourceObservedAt"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "encoding": {
+          "const": "zlib-base64"
+        },
+        "collections": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "records": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "synopses": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "related": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "references": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "search": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "external": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "routes": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "pools": {
+              "$ref": "#/$defs/descriptor"
+            },
+            "relationships": {
+              "$ref": "#/$defs/descriptor"
+            }
+          },
+          "required": [
+            "records",
+            "synopses",
+            "related",
+            "references",
+            "search",
+            "external",
+            "routes",
+            "pools",
+            "relationships"
+          ]
+        },
+        "sourceSnapshot": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "fullScopeVerified": {
+          "const": true
+        },
+        "media": {
+          "const": "no_verified_posters"
+        },
+        "sourceObservedAt": {
+          "type": "string",
+          "format": "date-time",
+          "minLength": 1
+        }
+      }
+    },
+    "sourceSnapshot": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "checkpoint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "readbackVerified": {
+      "const": true
+    }
+  },
+  "$defs": {
+    "descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "depth"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "root": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "first": {
+          "type": "string",
+          "minLength": 1
+        },
+        "last": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "count": {
+                "const": 0
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "depth": {
+                "const": 0
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "root"
+                  ]
+                },
+                {
+                  "required": [
+                    "first"
+                  ]
+                },
+                {
+                  "required": [
+                    "last"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "root",
+              "first",
+              "last"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

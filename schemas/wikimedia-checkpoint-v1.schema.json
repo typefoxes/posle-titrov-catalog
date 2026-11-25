@@ -1,0 +1,435 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Created by d.kotina on 24.11.2026. Closed/public publication contract; no personal data.",
+  "$id": "https://posle-titrov.local/schemas/wikimedia-checkpoint-v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "sourceVectorVersion",
+    "roots",
+    "trees",
+    "publicCollections",
+    "complete",
+    "operational",
+    "receiptsJSON"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "sourceVectorVersion": {
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "complete": {
+      "type": "boolean"
+    },
+    "roots": {
+      "const": {
+        "film": "Q11424",
+        "series": "Q5398426",
+        "miniseries": "Q1259759"
+      }
+    },
+    "trees": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "records",
+        "related",
+        "references",
+        "missingRecords",
+        "missingRelated",
+        "missingReferences",
+        "candidates",
+        "classes",
+        "wikipedia",
+        "relations"
+      ],
+      "properties": {
+        "records": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "related": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "references": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "missingRecords": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "missingRelated": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "missingReferences": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "candidates": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "classes": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "wikipedia": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "relations": {
+          "$ref": "#/$defs/descriptor"
+        }
+      }
+    },
+    "publicCollections": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "records": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "synopses": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "related": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "references": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "search": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "external": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "routes": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "pools": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "relationships": {
+          "$ref": "#/$defs/descriptor"
+        }
+      }
+    },
+    "receiptsJSON": {
+      "type": "string",
+      "minLength": 2
+    },
+    "cycleBaseRelease": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "operational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "tree"
+      ],
+      "properties": {
+        "version": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "tree": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "derivedTargets": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 3,
+          "propertyNames": {
+            "pattern": "^(primary|related):(target_revisions|reference_revision_targets)$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "database",
+              "table",
+              "base",
+              "through",
+              "rows"
+            ],
+            "properties": {
+              "database": {
+                "enum": [
+                  "primary",
+                  "related"
+                ]
+              },
+              "table": {
+                "enum": [
+                  "target_revisions",
+                  "reference_revision_targets"
+                ]
+              },
+              "base": {
+                "enum": [
+                  "next_scope",
+                  "reference_records",
+                  "related_records"
+                ]
+              },
+              "through": {
+                "type": "string",
+                "pattern": "^Q[1-9][0-9]*$"
+              },
+              "rows": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000000
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "version": {
+                "const": 2
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "derivedTargets"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "derivedTargets"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "depth"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "root": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "first": {
+          "type": "string",
+          "minLength": 1
+        },
+        "last": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "count": {
+                "const": 0
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "depth": {
+                "const": 0
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "root"
+                  ]
+                },
+                {
+                  "required": [
+                    "first"
+                  ]
+                },
+                {
+                  "required": [
+                    "last"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "root",
+              "first",
+              "last"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "complete": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "publicCollections": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "records": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "synopses": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "related": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "references": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "search": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "external": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "routes": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "pools": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "relationships": {
+                "$ref": "#/$defs/descriptor"
+              }
+            },
+            "required": [
+              "records",
+              "synopses",
+              "related",
+              "references",
+              "search",
+              "external",
+              "routes",
+              "pools",
+              "relationships"
+            ]
+          }
+        },
+        "not": {
+          "required": [
+            "cycleBaseRelease"
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "cycleBaseRelease"
+        ],
+        "properties": {
+          "publicCollections": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "records": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "synopses": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "related": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "references": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "search": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "external": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "routes": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "pools": {
+                "$ref": "#/$defs/descriptor"
+              },
+              "relationships": {
+                "$ref": "#/$defs/descriptor"
+              }
+            },
+            "required": [
+              "records",
+              "synopses",
+              "related",
+              "references"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "sourceVectorVersion": {
+            "const": 2
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "trees": {
+            "properties": {
+              "related": {
+                "const": {
+                  "count": 0,
+                  "depth": 0
+                }
+              },
+              "references": {
+                "const": {
+                  "count": 0,
+                  "depth": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
